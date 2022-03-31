@@ -1,5 +1,5 @@
 import mysql.connector
-
+import json
 connector = mysql.connector.connect(user='root',
                                     password='2yuhly',
                                     host='localhost',
@@ -7,19 +7,19 @@ connector = mysql.connector.connect(user='root',
                                     auth_plugin='mysql_native_password')
 cursor = connector.cursor()
 
-# create_sql1 = """CREATE TABLE IF NOT EXISTS `author`(
-#     `index` INT NOT NULL,
-#     `name` VARCHAR(100) NOT NULL,
-#     `affiliations` VARCHAR(200) NOT NULL,
-#     `published_count` TINYINT NOT NULL,
-#     `citation_number` TINYINT NOT NULL,
-#     `hi` INT NOT NULL,
-#     `pi` FLOAT NOT NULL,
-#     `upi` FLOAT NOT NULL,
-#     `interest` TEXT NOT NULL,
-#     PRIMARY KEY (`index`)
-# )ENGINE=InnoDB DEFAULT CHARSET=utf8;"""
-alter_sql1 = "ALTER TABLE `author` CHANGE `pi` `pi` DOUBLE NOT NULL,CHANGE `upi` `upi` DOUBLE NOT NULL"
+create_sql1 = """CREATE TABLE IF NOT EXISTS `author`(
+    `id` INT NOT NULL,
+    `name` VARCHAR(100) NOT NULL,
+    `affiliations` TEXT NOT NULL,
+    `published_count` INT NOT NULL,
+    `citation_number` INT NOT NULL,
+    `hi` INT NOT NULL,
+    `pi` DOUBLE NOT NULL,
+    `upi` DOUBLE NOT NULL,
+    `interest` TEXT NOT NULL,
+    PRIMARY KEY (`index`)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8;"""
+# alter_sql1 = "ALTER TABLE `author` CHANGE `pi` `pi` DOUBLE NOT NULL,CHANGE `upi` `upi` DOUBLE NOT NULL"
 
 create_sql2 = """CREATE TABLE IF NOT EXISTS `paper`(
     `index` INT NOT NULL,
@@ -47,11 +47,11 @@ create_sql4 = """CREATE TABLE IF NOT EXISTS `author2paper`(
     `author_position` INT NOT NULL,
     primary key(`index`)
 )"""
-# cursor.execute(alter_sql1)
+cursor.execute(create_sql1)
 # cursor.execute(create_sql2)
 # cursor.execute(create_sql3)
 # cursor.execute(create_sql4)
-# connector.commit()
+connector.commit()
 
 # Author2Paper = open('/Users/mac/downloads/dataset/AMiner-Author2Paper.txt')
 # for line in Author2Paper:
@@ -68,39 +68,54 @@ create_sql4 = """CREATE TABLE IF NOT EXISTS `author2paper`(
 #         print('insert row into coauthor table failed, the index of row is %s' % index)
 
 
-# Author = open('/Users/mac/downloads/dataset/AMiner-Author.txt')
-# author = {}
-# for line in Author:
-#     if line.startswith('#index'):
-#         author['index'] = line.strip().split(' ')[1]
-#     elif line.startswith('#n'):
-#         author['name'] = line[3:].strip()
-#     elif line.startswith('#a'):
-#         author['affiliations'] = line[3:].strip()
-#     elif line.startswith('#pc'):
-#         author['published_count'] = line.strip().split(' ')[1]
-#     elif line.startswith('#cn'):
-#         author['citation_number'] = line.strip().split(' ')[1]
-#     elif line.startswith('#hi'):
-#         author['hi'] = line.strip().split(' ')[1]
-#     elif line.startswith('#pi'):
-#         author['pi'] = line.strip().split(' ')[1]
-#     elif line.startswith('#upi'):
-#         author['upi'] = line.strip().split(' ')[1]
-#     elif line.startswith('#t'):
-#         author['interest'] = line[3:].strip()
-#     else:
-#         try:
-#             insert_sql = """INSERT INTO author VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-#             cursor.execute(insert_sql, (author['index'], author['name'], author['affiliations'],
-#                                     author['published_count'], author['citation_number'],
-#                                     author['hi'], author['pi'], author['upi'], author['interest']))
-#             connector.commit()
-#             print('insert row into author table, the index of row is %s' % author['index'])
-#             author.clear()
-#         except BaseException as err:
-#             print(f"Unexpected {err}, {type(err)}")
-#             print('insert row into author table failed, the index of row is %s' % author['index'])
+Author = open('/Users/mac/downloads/dataset/AMiner-Author.txt').readlines()
+author = {}
+index = 0
+log = open('../output3/error-log.json', 'w', encoding='utf-8')
+for i in range(len(Author)):
+    line = Author[i]
+    if line.startswith('#index'):
+        author['index'] = line.strip().split(' ')[1]
+    elif line.startswith('#n'):
+        author['name'] = line[3:].strip()
+    elif line.startswith('#a'):
+        author['affiliations'] = line[3:].strip()
+    elif line.startswith('#pc'):
+        author['published_count'] = line.strip().split(' ')[1]
+    elif line.startswith('#cn'):
+        author['citation_number'] = line.strip().split(' ')[1]
+    elif line.startswith('#hi'):
+        author['hi'] = line.strip().split(' ')[1]
+    elif line.startswith('#pi'):
+        author['pi'] = line.strip().split(' ')[1]
+    elif line.startswith('#upi'):
+        author['upi'] = line.strip().split(' ')[1]
+    elif line.startswith('#t'):
+        author['interest'] = line[3:].strip()
+    else:
+        index += 1
+        if len(author) != 0:    # != 9
+            if index % 1000 == 0:
+                print(f"I am running, the index is: {index}")
+            try:
+                insert_sql = """INSERT INTO author 
+                (id, name, affiliations, published_count, citation_number, hi, pi, upi, interest) 
+                VALUES  (%s, %s, %s, %s, %s, %s, %s, %s, %s) on DUPLICATE KEY UPDATE id = id"""
+                cursor.execute(insert_sql, (author['index'], author['name'], author['affiliations'],
+                                        author['published_count'], author['citation_number'],
+                                        author['hi'], author['pi'], author['upi'], author['interest']))
+                connector.commit()
+                # print('insert row into author table, the index of row is %s' % author['index'])
+                author.clear()
+            except BaseException as err:
+                json.dump(author, log, ensure_ascii=False, indent=4)
+                print(f"Unexpected {err}, {type(err)}")
+                print(author)
+                # print('insert row into author table failed, the index of row is %s' % author['index'])
+        else:
+            print(line)
+            print(Author[i-1])
+log.close()
 # Author.close()
 
 # Paper = open('/Users/mac/downloads/dataset/AMiner-Paper.txt')
@@ -137,18 +152,18 @@ create_sql4 = """CREATE TABLE IF NOT EXISTS `author2paper`(
 #             print('insert row into paper table failed, the index of row is %s' % paper['index'])
 # Paper.close()
 
-Coauthor = open('/Users/mac/downloads/dataset/AMiner-Coauthor.txt').readlines()
-coauthor = {}
-for line, i in zip(Coauthor, range(len(Coauthor))):
-    data = line[1:].strip().split('\t')
-    index_a, index_b, number = data[0], data[1], data[2]
-    try:
-        insert_sql = """INSERT INTO coauthor VALUES(%s, %s, %s)"""
-        cursor.execute(insert_sql, (index_a, index_b, number))
-        connector.commit()
-        if i/100 == 0:
-            print('insert row into coauthor table, the index_a of row is %s' % index_a)
-    except BaseException as err:
-        print(f"Unexpected {err}, {type(err)}")
-        print('insert row into coauthor table failed, the index of row is %s' % index_a)
-Coauthor.close()
+# Coauthor = open('/Users/mac/downloads/dataset/AMiner-Coauthor.txt').readlines()
+# coauthor = {}
+# for line, i in zip(Coauthor, range(len(Coauthor))):
+#     data = line[1:].strip().split('\t')
+#     index_a, index_b, number = data[0], data[1], data[2]
+#     try:
+#         insert_sql = """INSERT INTO coauthor VALUES(%s, %s, %s)"""
+#         cursor.execute(insert_sql, (index_a, index_b, number))
+#         connector.commit()
+#         if i/100 == 0:
+#             print('insert row into coauthor table, the index_a of row is %s' % index_a)
+#     except BaseException as err:
+#         print(f"Unexpected {err}, {type(err)}")
+#         print('insert row into coauthor table failed, the index of row is %s' % index_a)
+# Coauthor.close()

@@ -36,10 +36,12 @@
 }
 .page3 .affiliation{
     height: 2.8em;
+    overflow-y: scroll;
 }
 .page3 .topic{
     /*white-space: normal;*/
-    height: 150px;
+    height: 100px;
+    overflow-y: scroll;
 }
 .row{
     margin: 2em;

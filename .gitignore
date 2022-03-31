@@ -1,2 +1,5 @@
 /dataset/dblp.xml
 output*
+result
+dataset
+back_end/venv

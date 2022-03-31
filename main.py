@@ -1,5 +1,5 @@
 import random
-
+from datetime import datetime
 
 #
 def generateData(_range, num, file):
@@ -45,9 +45,12 @@ def DIANA(data, distance, k):
     # 初始整体为一个簇
     clusters.append([i for i in range(len(data))])
     while len(clusters) < k:
+        print(f'I am running, the clusters(num) is {len(clusters)}')
         # 对直径最大的簇分裂
         big_id = 0
         for i in range(len(clusters)):
+            # 复杂度计算
+            # k*n*(n*m)
             big_id = i if diameter(clusters[i], data, distance) > diameter(clusters[big_id], data, distance) else big_id
         # 找该簇中最远离中心的点放入新簇
         far_id = clusters[big_id][0]
@@ -87,8 +90,11 @@ def kcluster(data, distance, k):
     clusters = [getCenter(cluster, data) for cluster in DIANA(data, distance, k)]
     lastmatches = None
     for t in range(300):
+        print(f'I am running,the time is {t}')
         # 将距离类中心最近的样本归类
         bestmatches = [[] for i in range(k)]
+        # 复杂度计算
+        # t*n*k*m
         for j in range(len(data)):
             bestmatch = 0
             for i in range(k):
@@ -225,3 +231,49 @@ def main():
 
 # main()
 
+def devide():
+    vectors = open('output3/eigenVectors.txt').readlines()
+    data = [[float(i) for i in line.strip().split('\t')] for line in vectors]
+    # ids = [i*20+1 for i in range(len(data)//20)] # 注意 k 不能取 0
+    # start = datetime.now().strftime('%H:%M:%S')
+    # print(f'start time: {start}')
+    # for k in ids:
+    #     bestmatches = kcluster(data, distance, k)
+    #     d = meanDiameter(bestmatches, data, distance)
+    #     print('d:', d, 'k:', k)
+    # end = datetime.now().strftime('%H:%M:%S')
+    # print(f'end time: {end}')
+    # return # 选出了最优的k为60，接受下降间距为 20；或者 k 为 40，接受下降间距为40
+    k = 40
+
+    start = datetime.now().strftime('%H:%M:%S')
+    print(f'start time: {start}')
+    categories = kcluster(data, distance, k)
+    end = datetime.now().strftime('%H:%M:%S')
+    print(f'end time: {end}')
+    # 向 txt 写入聚类结果
+    res = open('result/res2.txt', 'w')
+    res.write('id\tcategory\n')
+    for i in range(len(categories)):
+        for j in categories[i]:
+            res.write('%d\t%d\n' % (j+1, i))
+    res.close()
+    # 向 json 写入聚类结果
+    jsondata = []
+    for i in range(len(categories)):
+        for j in categories[i]:
+            item = {}
+            item['id'] = j+1
+            item['category'] = i
+            jsondata.append(item)
+
+    import json
+    with open('result/res2.json', 'w', encoding='utf-8') as f:
+        json.dump(jsondata, f, ensure_ascii=False, indent=4)
+
+
+devide()
+# 可能可以优化的点
+# 1、点与点之间的距离，矩阵存储，避免多次计算
+# 2、k-means 聚类，类中心的选取换用别的聚类方式，而不是分裂聚类
+# 其他：换用更大的数据分析，变更属性的计算方法？PCA 自己实现。
