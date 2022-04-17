@@ -56,6 +56,8 @@ function ForceGraph({
     if (nodeStrength !== undefined) forceNode.strength(nodeStrength);
     if (linkStrength !== undefined) forceLink.strength(linkStrength);
 
+    let transform = d3.zoomIdentity;
+
     const simulation = d3.forceSimulation(nodes)
         .force("link", forceLink)
         .force("charge", forceNode)
@@ -67,6 +69,12 @@ function ForceGraph({
         .attr("height", "80vh")
         .attr("viewBox", [-width / 2, -height / 2, width, height])
         .attr("style", "max-width: 100%; height: auto; height: intrinsic;");
+
+    const zoomRect = svg.append("rect")
+        .attr("width", width)
+        .attr("height", height)
+        .style("fill", "none")
+        .style("pointer-events", "all")
 
     const link = svg.append("g")
         .attr("stroke", typeof linkStroke !== "function" ? linkStroke : null)
@@ -94,6 +102,18 @@ function ForceGraph({
     if (T) node.append("title").text(({index: i}) => T[i]);
     if (invalidation != null) invalidation.then(() => simulation.stop());
 
+    const zoom = d3.zoom()
+        .scaleExtent([1/2, 64])
+        .on("zoom", zoomed);
+    zoomRect.call(zoom)
+        .call(zoom.translateTo, 0, 0)
+        .on("wheel", event => event.preventDefault());
+
+    function zoomed(event) {
+        transform = event.transform;
+        node.attr("transform", event.transform);
+        link.attr("transform", event.transform);
+    }
     function intern(value) {
         return value !== null && typeof value === "object" ? value.valueOf() : value;
     }
